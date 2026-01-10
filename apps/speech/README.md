@@ -46,3 +46,63 @@ Press Ctrl+C to stop the transcription.
 - Microphone access
 - Internet connection for API calls
 - Gemini API key
+
+---
+
+## Facial Discomfort Detector
+
+Real-time facial analysis system that detects signs of discomfort, tension, or pain using OpenFace.
+
+### Setup
+
+1. **Download OpenFace** (Windows x64):
+   - Download from [OpenFace Releases](https://github.com/TadasBaltrusaitis/OpenFace/releases)
+   - Extract to `dlh12/OpenFace_2.2.0_win_x64/`
+
+2. **Download OpenFace Models**:
+   ```bash
+   cd OpenFace_2.2.0_win_x64
+   powershell -ExecutionPolicy Bypass -File .\download_models.ps1
+   ```
+
+3. **Install Python Dependencies**:
+   ```bash
+   pip install opencv-python pandas
+   ```
+
+### Usage
+
+**Live Discomfort Detector** (with facial landmarks and scoring):
+```bash
+python live_discomfort_detector.py
+```
+
+**Simple Live Detector** (continuous testing):
+```bash
+python simple_live_detector.py
+```
+
+### Features
+
+- **Real-time Analysis**: Processes video clips continuously (~1.3 seconds per clip)
+- **Facial Landmarks**: Displays 68-point facial landmark tracking
+- **Discomfort Scoring**: Analyzes Action Units (AU) to detect:
+  - Brow tension (AU04)
+  - Pain expressions (AU06, AU07)
+  - Nose wrinkle/discomfort (AU09)
+  - Disgust (AU10)
+  - Lip tension (AU14, AU20, AU23)
+  - Sadness (AU17)
+  - Gaze aversion
+  - Head down posture
+- **Live Feedback**: Color-coded status (Green: Comfortable, Yellow: Mild, Orange: Moderate, Red: High discomfort)
+- **Session Summary**: Average and peak discomfort scores
+
+### Controls
+
+- Press `q` to quit the detector
+- Press `Enter` to start analysis (live_discomfort_detector)
+
+### Output
+
+Results are saved in `live_output/` and `test_output/` directories (automatically cleaned up during analysis).
