@@ -2,7 +2,39 @@
 
 This Python application provides live speech-to-text transcription with automatic translation to English using Google's Gemini API.
 
-## Setup
+## Whisper + Ollama Setup
+
+1. Install Ollama
+    ```bash
+    install ollama at https://ollama.com
+    ```
+
+2. Install dependencies:
+    ```bash
+    ollama run gemma3:4b 
+    ```
+	:1b and :12b also available
+    ```bash
+    pip install faster-whisper pyaudio ollama
+    ```
+
+## Whisper + Ollama Usage
+
+Run the live transcription:
+```bash
+python local_speech.py
+```
+
+The application will:
+- Listen for speech through your microphone
+- Transcribe the speech to text
+- Translate non-English text to English using Gemini API
+- Display both the original transcription and translation
+- Only proficient in one language at a time
+
+Press Ctrl+C to stop the transcription.
+
+## Gemini Setup
 
 1. Install dependencies:
    ```bash
@@ -25,7 +57,7 @@ This Python application provides live speech-to-text transcription with automati
     models/gemini-2.5-flash
    ```
 
-## Usage
+## Gemini Usage
 
 Run the live transcription:
 ```bash
