@@ -2,8 +2,8 @@
 
 import type { Patient } from "../lib/data"
 import { Badge } from "./ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { cn } from "../lib/utils"
 import {
   User,

@@ -1,10 +1,10 @@
 "use client"
 
-import type { Patient } from "../lib/data.ts"
+import type { Patient } from "../lib/data"
 import { cn } from "../lib/utils"
 import { Search } from "lucide-react"
-import { Input } from "../components/ui/input"
-import { Badge } from "../components/ui/badge"
+import { Input } from "./ui/input"
+import { Badge } from "./ui/badge"
 import { useState } from "react"
 
 interface PatientListProps {
