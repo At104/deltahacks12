@@ -46,18 +46,26 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-            <span className="text-xl font-semibold text-primary">
-              {patient.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </span>
-          </div>
+          {patient.photo ? (
+            <img
+              src={`http://localhost:3001${patient.photo}`}
+              alt={patient.name}
+              className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+              <span className="text-xl font-semibold text-primary">
+                {patient.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
+              </span>
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
             <p className="text-muted-foreground">
-              {patient.id} • {patient.age} years old • {patient.gender}
+              {patient.id} • {patient.age > 0 ? `${patient.age} years old • ` : ""}{patient.gender !== "Other" ? patient.gender : ""}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <Badge className={cn(statusColors[patient.status])}>{patient.status}</Badge>
@@ -84,6 +92,25 @@ export function PatientDetails({ patient }: PatientDetailsProps) {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          {/* Patient Photo if available */}
+          {patient.photo && (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <User className="h-5 w-5 text-primary" />
+                  Patient Photo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <img
+                  src={`http://localhost:3001${patient.photo}`}
+                  alt={patient.name}
+                  className="w-full max-w-md rounded-lg object-cover border-2 border-border"
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Reason for Visit & Symptoms */}
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">

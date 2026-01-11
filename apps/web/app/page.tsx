@@ -36,7 +36,27 @@ export default function Home() {
   };
 
   const handleNameSubmit = (name: string) => {
-    setPatientName(name);
+    // Extract just the name from voice input (e.g., "Hello, my name is John" -> "John")
+    let extractedName = name;
+    
+    // Common patterns for name introduction
+    const patterns = [
+      /(?:my name is|i am|i'm|this is|call me)\s+(.+?)(?:\.|$)/i,
+      /(?:name|called):\s*(.+?)(?:\.|$)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = name.match(pattern);
+      if (match && match[1]) {
+        extractedName = match[1].trim();
+        break;
+      }
+    }
+    
+    // Clean up any remaining punctuation
+    extractedName = extractedName.replace(/[.,!?]$/, '').trim();
+    
+    setPatientName(extractedName);
     setStep("choice");
   };
 

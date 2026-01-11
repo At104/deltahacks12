@@ -83,14 +83,22 @@ export function PatientList({ patients, selectedPatient, onSelectPatient }: Pati
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-                  <span className="text-sm font-medium text-primary">
-                    {patient.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
-                </div>
+                {patient.photo ? (
+                  <img
+                    src={`http://localhost:3001${patient.photo}`}
+                    alt={patient.name}
+                    className="h-10 w-10 rounded-full object-cover border-2 border-primary/20"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                    <span className="text-sm font-medium text-primary">
+                      {patient.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <p className="font-medium text-card-foreground">{patient.name}</p>
                   <p className="text-xs text-muted-foreground">

@@ -14,6 +14,9 @@ app.use(express.json({ limit: '50mb' }));
 // Directory for patient records
 const RECORDS_DIR = path.join(__dirname, '../../patient_records');
 
+// Serve patient photos statically
+app.use('/patient-photos', express.static(RECORDS_DIR));
+
 // Ensure records directory exists
 await fs.mkdir(RECORDS_DIR, { recursive: true });
 
@@ -90,9 +93,25 @@ app.get('/list-patients', async (req, res) => {
 
     for (const folder of folders) {
       const metadataPath = path.join(RECORDS_DIR, folder, 'metadata.json');
+      const photoPath = path.join(RECORDS_DIR, folder, 'photo.jpg');
+      
       try {
         const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf-8'));
-        patients.push({ folder, ...metadata });
+        
+        // Check if photo exists
+        let hasPhoto = false;
+        try {
+          await fs.access(photoPath);
+          hasPhoto = true;
+        } catch (e) {
+          // Photo doesn't exist
+        }
+        
+        patients.push({ 
+          folder, 
+          ...metadata,
+          photoPath: hasPhoto ? `/patient-photos/${folder}/photo.jpg` : null
+        });
       } catch (e) {
         // Skip folders without metadata
       }

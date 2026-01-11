@@ -31,6 +31,84 @@ export interface Patient {
     lastVisit: string
     status: "Waiting" | "In Progress" | "Completed"
     priority: "Low" | "Medium" | "High" | "Critical"
+    photo?: string
+}
+
+export async function loadPatientsFromFilesystem(): Promise<Patient[]> {
+    try {
+        const response = await fetch('http://localhost:3001/list-patients');
+        if (!response.ok) {
+            console.error('Failed to load patients from filesystem');
+            return patients; // Fallback to mock data
+        }
+        
+        const data = await response.json();
+        
+        // Transform filesystem data to Patient interface
+        return data.patients.map((p: any) => {
+            const reasonForVisit = p.symptoms || "";
+            const symptoms = p.symptoms ? [p.symptoms] : [];
+            const priority = detectPriority(reasonForVisit);
+            
+            return {
+                id: p.folder,
+                name: p.name,
+                age: 0, // Not collected yet
+                gender: "Other" as const,
+                dateOfBirth: "",
+                phone: "",
+                email: "",
+                address: "",
+                bloodType: "",
+                insuranceProvider: "",
+                insuranceNumber: "",
+                emergencyContact: {
+                    name: "",
+                    relationship: "",
+                    phone: "",
+                },
+                symptoms,
+                reasonForVisit,
+                vitalSigns: {
+                    bloodPressure: "",
+                    heartRate: 0,
+                    temperature: 0,
+                    oxygenSaturation: 0,
+                    weight: 0,
+                    height: 0,
+                },
+                medicalHistory: [],
+                allergies: [],
+                currentMedications: [],
+                lastVisit: new Date(p.timestamp).toISOString().split('T')[0],
+                status: "Waiting" as const,
+                priority,
+                photo: p.photoPath,
+            };
+        });
+    } catch (error) {
+        console.error('Error loading patients:', error);
+        return patients; // Fallback to mock data
+    }
+}
+
+function detectPriority(text: string): "Low" | "Medium" | "High" | "Critical" {
+    const lowerText = text.toLowerCase();
+    
+    const criticalKeywords = ['chest pain', 'heart attack', 'stroke', 'seizure', 'severe bleeding', 'unconscious'];
+    const highKeywords = ['severe pain', 'difficulty breathing', 'high fever', 'broken bone', 'head injury'];
+    const mediumKeywords = ['pain', 'fever', 'infection', 'injury', 'bleeding'];
+    
+    if (criticalKeywords.some(keyword => lowerText.includes(keyword))) {
+        return 'Critical';
+    }
+    if (highKeywords.some(keyword => lowerText.includes(keyword))) {
+        return 'High';
+    }
+    if (mediumKeywords.some(keyword => lowerText.includes(keyword))) {
+        return 'Medium';
+    }
+    return 'Low';
 }
 
 export const patients: Patient[] = [
