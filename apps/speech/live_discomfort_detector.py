@@ -15,7 +15,8 @@ class LiveDiscomfortDetector:
     """Real-time facial discomfort detection using OpenFace"""
     
     def __init__(self):
-        self.discomfort_history = deque(maxlen=30)
+        self.discomfort_history = deque(maxlen=100)
+        self.all_scores = []
         self.output_dir = Path("live_output")
         self.output_dir.mkdir(exist_ok=True)
         self.analysis_count = 0
@@ -26,6 +27,20 @@ class LiveDiscomfortDetector:
         self.current_color = (255, 255, 255)
         self.current_landmarks = {}
         self.is_analyzing = False
+    
+    def clear_clips(self):
+        """Delete all video clips from output directory"""
+        if self.output_dir.exists():
+            for file in self.output_dir.glob("*.avi"):
+                try:
+                    file.unlink()
+                except Exception:
+                    pass
+            for file in self.output_dir.glob("*.csv"):
+                try:
+                    file.unlink()
+                except Exception:
+                    pass
         
     def detect_discomfort_from_data(self, row):
         """Detect discomfort indicators from facial action units"""
@@ -119,24 +134,23 @@ class LiveDiscomfortDetector:
         """Analyze video in background thread"""
         self.is_analyzing = True
         
-        # Run OpenFace
         cmd = [
             str(FEATURE_EXTRACTION),
             "-f", str(video_path),
             "-out_dir", str(self.output_dir),
-            "-q"  # Quiet mode
+            "-wild",
+            "-q"
         ]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, timeout=10)
+            subprocess.run(cmd, capture_output=True, timeout=10)
             
-            # Read results
             csv_file = self.output_dir / f"{video_path.stem}.csv"
+            
             if csv_file.exists():
                 df = pd.read_csv(csv_file)
                 
                 if len(df) > 0:
-                    # Use middle frame for better stability
                     mid_idx = len(df) // 2
                     analysis_result = self.detect_discomfort_from_data(df.iloc[mid_idx])
                     
@@ -145,17 +159,16 @@ class LiveDiscomfortDetector:
                         self.current_level, self.current_color = self.get_discomfort_level(analysis_result['score'])
                         self.current_landmarks = analysis_result['landmarks']
                         self.discomfort_history.append(analysis_result['score'])
+                        self.all_scores.append(analysis_result['score'])
                         self.analysis_count += 1
                 
-                # Cleanup
                 csv_file.unlink()
             
-            # Cleanup video
             if video_path.exists():
                 video_path.unlink()
                 
-        except Exception as e:
-            print(f"Analysis error: {e}")
+        except Exception:
+            pass
         
         self.is_analyzing = False
     
@@ -178,8 +191,7 @@ class LiveDiscomfortDetector:
             print("❌ Could not open webcam")
             return
         
-        print("\n🎭 Live Discomfort Detector Started")
-        print("Press 'q' to quit\n")
+        print("\n▶ Recording...\n")
         
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -189,13 +201,17 @@ class LiveDiscomfortDetector:
         frames_per_clip = 20  # ~1.3 second clips for stable processing
         frame_count = 0
         clip_count = 0
+        start_time = time.time()  # Track recording start time
         
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use MP4V codec
         
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
+            
+            # Track elapsed time
+            elapsed_time = time.time() - start_time
             
             # Use frame directly (no flip)
             display_frame = frame.copy()
@@ -209,13 +225,11 @@ class LiveDiscomfortDetector:
                 clip_count += 1
                 video_path = self.output_dir / f"clip_{clip_count}.avi"
                 
-                # Save clip
                 out = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
                 for f in frame_buffer:
                     out.write(f)
                 out.release()
                 
-                # Analyze in background
                 thread = threading.Thread(target=self.analyze_video_async, args=(video_path,))
                 thread.daemon = True
                 thread.start()
@@ -238,12 +252,18 @@ class LiveDiscomfortDetector:
             
             # Draw UI overlay
             overlay = display_frame.copy()
-            cv2.rectangle(overlay, (10, height-200), (630, height-10), (0, 0, 0), -1)
+            cv2.rectangle(overlay, (10, height-230), (630, height-10), (0, 0, 0), -1)
             display_frame = cv2.addWeighted(overlay, 0.6, display_frame, 0.4, 0)
             
-            y_pos = height - 180
+            y_pos = height - 210
             cv2.putText(display_frame, "LIVE DISCOMFORT DETECTION", (20, y_pos),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+            
+            # Elapsed time
+            y_pos += 30
+            time_text = f"Recording Time: {int(elapsed_time)}s"
+            cv2.putText(display_frame, time_text, (20, y_pos),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (100, 255, 255), 2)
             
             y_pos += 35
             status_text = f"Status: {self.current_level}"
@@ -263,7 +283,7 @@ class LiveDiscomfortDetector:
             cv2.rectangle(display_frame, (20, y_pos), (20 + bar_length, y_pos+20), self.current_color, -1)
             cv2.rectangle(display_frame, (20, y_pos), (420, y_pos+20), (255, 255, 255), 2)
             
-            cv2.putText(display_frame, "Press 'q' to quit", (470, y_pos+15),
+            cv2.putText(display_frame, "Press 'q' to stop", (470, y_pos+15),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
             
             cv2.imshow('Live Discomfort Detector', display_frame)
@@ -274,33 +294,57 @@ class LiveDiscomfortDetector:
         cap.release()
         cv2.destroyAllWindows()
         
-        print("\n✨ Session Summary:")
-        if self.discomfort_history:
-            avg = sum(self.discomfort_history) / len(self.discomfort_history)
-            max_score = max(self.discomfort_history)
-            print(f"   Clips Analyzed: {self.analysis_count}")
-            print(f"   Average Discomfort: {avg:.2f}")
-            print(f"   Peak Discomfort: {max_score:.2f}")
-            level, _ = self.get_discomfort_level(avg)
-            print(f"   Overall: {level}")
+        time.sleep(2)  # Brief wait for any pending analyses
+        
+        print("\n" + "="*60)
+        print("✨ RECORDING COMPLETE - FINAL SUMMARY")
+        print("="*60)
+        
+        if self.all_scores:
+            total_recording_time = time.time() - start_time
+            avg_discomfort = sum(self.all_scores) / len(self.all_scores)
+            max_discomfort = max(self.all_scores)
+            
+            print(f"\nDuration: {total_recording_time:.1f}s | Clips: {self.analysis_count}")
+            print(f"\nAverage Discomfort: {avg_discomfort:.2f}")
+            print(f"Peak Discomfort: {max_discomfort:.2f}")
+            
+            avg_level, _ = self.get_discomfort_level(avg_discomfort)
+            print(f"\nOverall: {avg_level}")
+            
+            # Distribution
+            comfortable = sum(1 for s in self.all_scores if s < 2)
+            mild = sum(1 for s in self.all_scores if 2 <= s < 5)
+            moderate = sum(1 for s in self.all_scores if 5 <= s < 8)
+            high = sum(1 for s in self.all_scores if s >= 8)
+            total = len(self.all_scores)
+            
+            print(f"\nComfortable: {comfortable/total*100:.0f}% | Mild: {mild/total*100:.0f}% | Moderate: {moderate/total*100:.0f}% | High: {high/total*100:.0f}%")
+        else:
+            print("\n⚠️ No data collected.")
+        
+        print("\n" + "="*60)
 
 def main():
-    print("=" * 60)
-    print("🎭 Real-Time Facial Discomfort Detector")
-    print("=" * 60)
+    print("\n🎭 Live Discomfort Detector")
     
     if not FEATURE_EXTRACTION.exists():
-        print(f"❌ OpenFace not found at {FEATURE_EXTRACTION}")
+        print(f"❌ OpenFace not found")
         return
     
-    print("✓ OpenFace found")
-    print("\nThis will analyze your facial expressions in real-time")
-    print("and detect signs of discomfort, tension, or pain.")
-    print()
+    detector = LiveDiscomfortDetector()
     
+    # Check for old clips
+    old_clips = list(detector.output_dir.glob("*.avi"))
+    if old_clips:
+        response = input(f"Found {len(old_clips)} old clip(s). Clear them? (y/n): ").strip().lower()
+        if response == 'y':
+            detector.clear_clips()
+            print("✓ Clips cleared")
+    
+    print("Press 'q' to stop and see results\n")
     input("Press Enter to start...")
     
-    detector = LiveDiscomfortDetector()
     detector.run_live_detection()
 
 if __name__ == "__main__":

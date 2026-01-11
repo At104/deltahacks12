@@ -36,3 +36,10 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# OpenFace
+OpenFace_2.2.0_win_x64/
+
+# Speech output
+apps/speech/live_output/
+apps/speech/test_output/
