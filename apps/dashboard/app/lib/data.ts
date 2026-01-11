@@ -43,12 +43,18 @@ export async function loadPatientsFromFilesystem(): Promise<Patient[]> {
         }
         
         const data = await response.json();
+        console.log('📦 Raw API response:', data);
         
         // Transform filesystem data to Patient interface
-        return data.patients.map((p: any) => {
+        const transformed = data.patients.map((p: any) => {
             const reasonForVisit = p.symptoms || "";
             const symptoms = p.symptoms ? [p.symptoms] : [];
-            const priority = detectPriority(reasonForVisit);
+            
+            // Use saved status/priority if available, otherwise use defaults
+            const priority = p.priority || detectPriority(reasonForVisit);
+            const status = p.status || "Waiting";
+            
+            console.log(`👤 Patient ${p.name}: status=${status}, priority=${priority}, photoPath=${p.photoPath}`);
             
             return {
                 id: p.folder,
@@ -81,11 +87,14 @@ export async function loadPatientsFromFilesystem(): Promise<Patient[]> {
                 allergies: [],
                 currentMedications: [],
                 lastVisit: new Date(p.timestamp).toISOString().split('T')[0],
-                status: "Waiting" as const,
-                priority,
+                status: status as Patient["status"],
+                priority: priority as Patient["priority"],
                 photo: p.photoPath,
             };
         });
+        
+        console.log('✅ Transformed patients:', transformed);
+        return transformed;
     } catch (error) {
         console.error('Error loading patients:', error);
         return patients; // Fallback to mock data

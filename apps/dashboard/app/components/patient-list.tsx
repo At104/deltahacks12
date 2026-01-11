@@ -11,6 +11,7 @@ interface PatientListProps {
   patients: Patient[]
   selectedPatient: Patient | null
   onSelectPatient: (patient: Patient) => void
+  isQueueView?: boolean
 }
 
 const priorityColors = {
@@ -26,25 +27,36 @@ const statusColors = {
   Completed: "bg-success/20 text-success",
 }
 
-export function PatientList({ patients, selectedPatient, onSelectPatient }: PatientListProps) {
+export function PatientList({ patients, selectedPatient, onSelectPatient, isQueueView = false }: PatientListProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"All" | "Waiting" | "In Progress" | "Completed">("All")
 
-  const filteredPatients = patients.filter(
-    (patient) =>
+  const filteredPatients = patients.filter((patient) => {
+    const matchesSearch = 
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      patient.id.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesStatus = 
+      statusFilter === "All" || patient.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
 
   return (
     <div className="flex h-full w-80 flex-col border-r border-border bg-card">
       {/* Header */}
       <div className="border-b border-border p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-card-foreground">Patients</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">
+            {isQueueView ? "Triage Queue" : "All Patients"}
+          </h2>
           <Badge variant="secondary" className="text-xs">
-            {patients.length} Total
+            {filteredPatients.length} {isQueueView ? "in queue" : "total"}
           </Badge>
         </div>
+        {isQueueView && (
+          <p className="text-xs text-muted-foreground mb-4">Sorted by priority (highest first)</p>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -58,16 +70,20 @@ export function PatientList({ patients, selectedPatient, onSelectPatient }: Pati
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 border-b border-border px-4 py-2">
-        <button className="rounded-md bg-primary/20 px-3 py-1.5 text-xs font-medium text-primary">All</button>
-        <button className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary">
-          Waiting
+        {(["All", "Waiting", "In Progress", "Completed"] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              statusFilter === status
+                ? "bg-primary/20 text-primary"
+                : "text-muted-foreground hover:bg-secondary"
+            )}
+          >
+            {status}
         </button>
-        <button className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary">
-          In Progress
-        </button>
-        <button className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary">
-          Completed
-        </button>
+        ))}
       </div>
 
       {/* Patient List */}
@@ -90,19 +106,19 @@ export function PatientList({ patients, selectedPatient, onSelectPatient }: Pati
                     className="h-10 w-10 rounded-full object-cover border-2 border-primary/20"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-                    <span className="text-sm font-medium text-primary">
-                      {patient.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </span>
-                  </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                  <span className="text-sm font-medium text-primary">
+                    {patient.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </span>
+                </div>
                 )}
                 <div>
                   <p className="font-medium text-card-foreground">{patient.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {patient.id} • {patient.age}y • {patient.gender}
+                    {patient.lastVisit}
                   </p>
                 </div>
               </div>

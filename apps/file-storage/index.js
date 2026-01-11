@@ -110,7 +110,9 @@ app.get('/list-patients', async (req, res) => {
         patients.push({ 
           folder, 
           ...metadata,
-          photoPath: hasPhoto ? `/patient-photos/${folder}/photo.jpg` : null
+          photoPath: hasPhoto ? `/patient-photos/${folder}/photo.jpg` : null,
+          status: metadata.status || 'Waiting',
+          priority: metadata.priority || 'Medium'
         });
       } catch (e) {
         // Skip folders without metadata
@@ -119,6 +121,39 @@ app.get('/list-patients', async (req, res) => {
 
     res.json({ patients });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/update-patient', async (req, res) => {
+  try {
+    const { folder, status, priority } = req.body;
+
+    if (!folder) {
+      return res.status(400).json({ error: 'Folder name is required' });
+    }
+
+    const metadataPath = path.join(RECORDS_DIR, folder, 'metadata.json');
+    
+    // Read existing metadata
+    const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf-8'));
+    
+    // Update fields
+    if (status !== undefined) {
+      metadata.status = status;
+    }
+    if (priority !== undefined) {
+      metadata.priority = priority;
+    }
+    
+    // Write back
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
+
+    console.log(`✅ Updated patient ${folder}: status=${status}, priority=${priority}`);
+
+    res.json({ success: true, metadata });
+  } catch (error) {
+    console.error('❌ Error updating patient:', error);
     res.status(500).json({ error: error.message });
   }
 });

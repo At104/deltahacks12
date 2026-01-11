@@ -9,16 +9,11 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "patients", label: "Patients", icon: Users },
-  { id: "appointments", label: "Appointments", icon: Calendar },
-  { id: "records", label: "Records", icon: FileText },
+  { id: "queue", label: "Triage Queue", icon: Activity },
 ]
 
-const bottomNavItems = [
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "settings", label: "Settings", icon: Settings },
-]
+const bottomNavItems: typeof navItems = []
 
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
@@ -92,8 +87,8 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <span className="text-sm font-medium text-primary">DR</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">Dr. Rebecca</p>
-            <p className="text-xs text-muted-foreground truncate">Internal Medicine</p>
+            <p className="text-sm font-medium text-sidebar-foreground truncate">Dr. Donut</p>
+            <p className="text-xs text-muted-foreground truncate">Internal View</p>
           </div>
         </div>
       </div>
